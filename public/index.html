@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fridge Chef</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F4F7EC;
+    --surface: #FFFFFF;
+    --ink: #2B2130;
+    --muted: #6A6572;
+    --line: #DFE4D2;
+    --tomato: #D9381E;
+    --on-tomato: #FFFFFF;
+    --basil: #2E6B3A;
+    --basil-soft: #E3EFD9;
+    --lemon: #F2C14E;
+    --lemon-soft: #FBF1CF;
+    --shadow: 0 1px 2px rgba(43,33,48,.06), 0 8px 24px rgba(43,33,48,.06);
+    --display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+    --body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #18201A; --surface: #212B23; --ink: #F1F3EA; --muted: #A5AFA1; --line: #34423A;
+      --tomato: #FF6A4D; --on-tomato: #240E08; --basil: #8CCB97; --basil-soft: #25382A;
+      --lemon: #F2C14E; --lemon-soft: #3A3420; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #18201A; --surface: #212B23; --ink: #F1F3EA; --muted: #A5AFA1; --line: #34423A;
+    --tomato: #FF6A4D; --on-tomato: #240E08; --basil: #8CCB97; --basil-soft: #25382A;
+    --lemon: #F2C14E; --lemon-soft: #3A3420; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--body); font-size: 16px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 680px; margin: 0 auto; padding: 36px 20px 64px; }
+  :focus-visible { outline: 3px solid var(--tomato); outline-offset: 3px; }
+
+  header { text-align: center; margin-bottom: 28px; }
+  h1 {
+    font-family: var(--display); font-weight: 800; font-size: clamp(2.4rem, 8vw, 3.4rem);
+    letter-spacing: -0.03em; line-height: 1; margin: 0 0 10px;
+  }
+  .sub { color: var(--muted); margin: 0 auto; max-width: 34ch; }
+
+  /* The plate: the one memorable element */
+  .plate-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .plate {
+    position: relative; width: min(280px, 72vw); aspect-ratio: 1; border-radius: 50%;
+    border: 0; padding: 0; cursor: pointer; background: var(--surface);
+    box-shadow: var(--shadow), 0 0 0 10px var(--surface), 0 0 0 11px var(--line);
+    display: grid; place-items: center; overflow: hidden; color: var(--ink);
+    font-family: inherit;
+  }
+  .plate img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .plate .empty { display: grid; gap: 8px; justify-items: center; padding: 28px; text-align: center; }
+  .plate .empty svg { width: 44px; height: 44px; color: var(--tomato); }
+  .plate .empty strong { font-family: var(--display); font-size: 1.15rem; font-weight: 700; line-height: 1.2; }
+  .plate .empty span { color: var(--muted); font-size: .9rem; }
+  .plate.dragover { box-shadow: var(--shadow), 0 0 0 10px var(--lemon-soft), 0 0 0 11px var(--lemon); }
+  .plate.busy::after {
+    content: ""; position: absolute; inset: 0; border-radius: 50%;
+    border: 6px solid transparent; border-top-color: var(--tomato);
+    animation: spin 1s linear infinite;
+  }
+  .plate.busy img { opacity: .55; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .thumbs { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; min-height: 0; }
+  .thumb { position: relative; width: 52px; height: 52px; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--line); }
+  .thumb button {
+    position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%;
+    border: 0; background: var(--ink); color: var(--bg); font-size: 14px; line-height: 1; cursor: pointer; padding: 0;
+  }
+
+  .pick { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .link-btn {
+    font: inherit; font-weight: 600; font-size: .95rem; color: var(--basil); background: var(--basil-soft);
+    border: 0; border-radius: 999px; padding: 9px 16px; cursor: pointer;
+  }
+  .link-btn[disabled] { opacity: .5; cursor: not-allowed; }
+  .hint { color: var(--muted); font-size: .85rem; text-align: center; margin: 0; }
+
+  textarea {
+    width: 100%; min-height: 96px; font: inherit; color: var(--ink); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; resize: vertical;
+  }
+
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 28px 0 8px; }
+  .btn {
+    font: inherit; font-weight: 700; font-size: 1.02rem; border-radius: 14px; padding: 15px 18px;
+    cursor: pointer; border: 2px solid transparent; transition: transform .12s ease, opacity .12s ease;
+  }
+  .btn:active:not([disabled]) { transform: translateY(1px); }
+  .btn[disabled] { opacity: .45; cursor: not-allowed; }
+  .btn.primary { background: var(--tomato); color: var(--on-tomato); }
+  .btn.surprise { background: var(--lemon-soft); color: var(--ink); border-color: var(--lemon); }
+  .btn.stop { grid-column: 1 / -1; background: transparent; color: var(--ink); border-color: var(--line); }
+  .status { min-height: 1.4em; text-align: center; color: var(--muted); font-size: .92rem; margin: 6px 0 0; }
+  .status.err { color: var(--tomato); font-weight: 500; }
+
+  .card {
+    margin-top: 28px; background: var(--surface); border-radius: 22px; box-shadow: var(--shadow);
+    padding: 28px 24px 26px; border: 1px solid var(--line);
+  }
+  .card.in { animation: rise .35s ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .kind { display: inline-block; font-size: .85rem; font-weight: 600; color: var(--basil); background: var(--basil-soft); border-radius: 999px; padding: 3px 12px; margin-bottom: 12px; }
+  .kind.wild { color: var(--ink); background: var(--lemon-soft); }
+  .card h2 { font-family: var(--display); font-weight: 800; font-size: clamp(1.8rem, 6vw, 2.4rem); line-height: 1.08; letter-spacing: -0.02em; margin: 0 0 10px; }
+  .use { margin: 0 0 16px; font-size: 1.05rem; max-width: 56ch; }
+  .meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; }
+  .meta span { font-size: .88rem; font-weight: 500; border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px; color: var(--muted); }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+  .cols h3, .steps-h { font-family: var(--display); font-size: 1.1rem; font-weight: 700; margin: 0 0 8px; }
+  .cols ul { margin: 0; padding-left: 1.1em; }
+  .cols li { margin-bottom: 4px; }
+  .buy { background: var(--lemon-soft); border-radius: 14px; padding: 14px 16px; }
+  .buy.none { background: var(--basil-soft); }
+  .buy p { margin: 0; }
+  ol.steps { margin: 0; padding-left: 1.4em; }
+  ol.steps li { margin-bottom: 10px; padding-left: 4px; }
+  ol.steps li::marker { font-family: var(--display); font-weight: 800; color: var(--tomato); }
+  .spotted { margin-top: 22px; padding-top: 16px; border-top: 1px dashed var(--line); color: var(--muted); font-size: .88rem; }
+  .spotted b { color: var(--ink); font-weight: 600; }
+
+  .notice { margin-top: 20px; background: var(--lemon-soft); border-radius: 14px; padding: 14px 16px; font-size: .92rem; }
+  [hidden] { display: none !important; }
+  .btn.wide { grid-column: 1 / -1; }
+  .review { margin-top: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 18px; }
+  .review.locked { opacity: .6; pointer-events: none; }
+  .rv-h { font-family: var(--display); font-size: 1.15rem; font-weight: 700; margin: 0 0 4px; }
+  .hint.left { text-align: left; margin-bottom: 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 5px 6px 5px 12px; font-size: .92rem; }
+  .chip.unsure { border-style: dashed; color: var(--muted); }
+  .chip .rm { border: 0; background: var(--basil-soft); color: var(--ink); width: 22px; height: 22px; min-width: 22px; border-radius: 50%; cursor: pointer; line-height: 1; padding: 0; flex: none; }
+  .chip.off { border-style: dashed; color: var(--muted); background: transparent; }
+  .chip .lbl { border: 0; background: none; font: inherit; color: inherit; cursor: pointer; padding: 0; text-align: left; width: auto; height: auto; border-radius: 0; line-height: 1.3; overflow-wrap: anywhere; }
+  .chip.off .lbl::before { content: "+ "; }
+  .quick { margin-top: 12px; }
+  .quick button { border: 1px dashed var(--line); background: transparent; border-radius: 999px; padding: 5px 12px; font: inherit; font-size: .9rem; cursor: pointer; color: var(--ink); }
+  .covered { margin: 12px 0 0; font-size: .9rem; color: var(--muted); background: var(--lemon-soft); border-radius: 12px; padding: 10px 12px; }
+  .addrow { display: flex; gap: 8px; margin-top: 14px; }
+  .addrow input { flex: 1; min-width: 0; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+  .vh { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; clip: rect(0 0 0 0); pointer-events: none; }
+  label.link-btn { display: inline-block; }
+  .locked label { pointer-events: none; opacity: .6; }
+
+  @media (max-width: 520px) {
+    main { padding-top: 24px; }
+    .cols { grid-template-columns: 1fr; gap: 18px; }
+    .card { padding: 22px 18px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .plate.busy::after { animation-duration: 3s; }
+    .card.in { animation: none; }
+    .btn { transition: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Fridge Chef</h1>
+    <p class="sub">Photograph what you have. Get one dish to cook tonight.</p>
+  </header>
+
+  <section class="plate-wrap" id="plateWrap" aria-label="Add photos" hidden>
+    <label class="plate" id="plate" for="upInput" aria-label="Add a photo of your fridge or ingredients">
+      <span class="empty" id="plateEmpty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg>
+        <strong>Add a photo of your fridge or ingredients</strong>
+        <span>Tap, or drop a picture here</span>
+      </span>
+    </label>
+
+    <div class="thumbs" id="thumbs" aria-label="Your photos"></div>
+
+    <div class="pick" id="pick">
+      <label class="link-btn" id="camBtn" for="camInput">Take a photo</label>
+      <label class="link-btn" id="upBtn" for="upInput">Upload photos</label>
+      <button class="link-btn" id="typeBtn" type="button">Type instead</button>
+    </div>
+    <p class="hint" id="pickHint">Up to 3 photos. A fridge shelf and a pantry shot work well.</p>
+    <p class="hint" id="privacy">This site does not save your photos. They are sent to Anthropic's Claude to read the ingredients.</p>
+
+    <input id="camInput" class="vh" type="file" accept="image/*" capture="environment">
+    <input id="upInput" class="vh" type="file" accept="image/*" multiple>
+  </section>
+
+  <section class="review" id="review" hidden aria-label="Items I can see">
+    <h2 class="rv-h">What I can see</h2>
+    <p class="hint left">Solid items are used. Dashed items are ones I am unsure about and are left out until you tap them. Use the &times; to remove an item.</p>
+    <div class="chips" id="chips"></div>
+    <p class="covered" id="coveredNote" hidden></p>
+    <p class="hint left" id="quickLabel" style="margin:14px 0 8px">Tap to add what is in your containers:</p>
+    <div class="chips quick" id="quick"></div>
+    <div class="addrow"><input id="addInput" type="text" maxlength="40" placeholder="Add an item, e.g. paneer" aria-label="Add an item"><button class="link-btn" id="addBtn" type="button">Add</button></div>
+  </section>
+
+  <section id="textFallback" hidden>
+    <div class="notice" id="notice" hidden></div>
+    <label for="typed" class="hint" style="display:block;margin:12px 0 6px;text-align:left">Ingredients at home</label>
+    <textarea id="typed" placeholder="paneer, 2 tomatoes, capsicum, leftover rice, curd"></textarea>
+    <p style="text-align:center;margin:12px 0 0"><button class="link-btn" id="photoBtn" type="button">Use photos instead</button></p>
+  </section>
+
+  <div class="actions">
+    <button class="btn primary wide" id="readBtn" type="button" disabled>Read my photos</button>
+    <button class="btn primary" id="goBtn" type="button" disabled hidden>Suggest a dish</button>
+    <button class="btn surprise" id="wildBtn" type="button" disabled hidden>Surprise me</button>
+    <button class="btn stop" id="stopBtn" type="button" hidden>Stop</button>
+  </div>
+  <p class="status" id="status" role="status" aria-live="polite"></p>
+
+  <section id="result" aria-live="polite"></section>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var plate = $("plate"), plateEmpty = $("plateEmpty"), thumbs = $("thumbs");
+  var camBtn = $("camBtn"), upBtn = $("upBtn"), camInput = $("camInput"), upInput = $("upInput");
+  var readBtn = $("readBtn"), goBtn = $("goBtn"), wildBtn = $("wildBtn"), stopBtn = $("stopBtn");
+  var statusEl = $("status"), resultEl = $("result");
+  var textFallback = $("textFallback"), typed = $("typed");
+  var plateWrap = $("plateWrap"), typeBtn = $("typeBtn"), photoBtn = $("photoBtn");
+  var quick = $("quick"), review = $("review"), chips = $("chips"), coveredNote = $("coveredNote"), addInput = $("addInput"), addBtn = $("addBtn");
+
+  var MAX_PHOTOS = 3, MAX_EDGE = 1200, MAX_RAW = 25 * 1024 * 1024;
+  var photos = [];          // {dataUrl}
+  var items = [];           // {name, sure}
+  var covered = [];
+  var reviewed = false, textMode = false, busy = false, ctl = null, lastDish = "";
+
+  var ERR = {
+    daily_limit: "You have used today's tries from this device. Come back tomorrow.",
+    capacity: "Today's capacity for this free tool is used up. Try again tomorrow.",
+    busy: "The service is busy. Wait a minute and try again.",
+    bad_input: "That input could not be used. Try a clearer photo or a shorter list.",
+    too_large: "The photos are too large. Remove one and try again.",
+    garbled: "The answer came back garbled. Press the button again.",
+    upstream: "The connection dropped. Press the button to retry.",
+    config: "This tool is being set up. Try again later.",
+    forbidden: "This page is not allowed to use the tool.",
+    network: "Could not reach the server. Check your connection and retry."
+  };
+
+  function setStatus(msg, isErr) { statusEl.textContent = msg || ""; statusEl.className = "status" + (isErr ? " err" : ""); }
+
+  function refresh() {
+    var cookReady = textMode ? typed.value.trim().length > 2 : (reviewed && items.some(function (i) { return i.on; }));
+    readBtn.hidden = textMode || reviewed;
+    readBtn.disabled = busy || photos.length === 0;
+    goBtn.hidden = wildBtn.hidden = !(textMode || reviewed);
+    goBtn.disabled = wildBtn.disabled = busy || !cookReady;
+    stopBtn.hidden = !busy;
+    plate.classList.toggle("busy", busy);
+    plateWrap.classList.toggle("locked", busy);
+    review.classList.toggle("locked", busy);
+  }
+
+  function resetReview() {
+    reviewed = false; items = []; covered = [];
+    review.hidden = true; chips.textContent = ""; coveredNote.hidden = true;
+  }
+
+  var SUGGEST = ["onion", "potato", "paneer", "curd", "eggs", "milk", "coriander", "ginger-garlic paste", "cooked rice", "cooked dal", "capsicum", "green chilli", "butter", "bread"];
+
+  function hasItem(name) {
+    var low = name.toLowerCase();
+    return items.some(function (it) { return it.name.toLowerCase() === low; });
+  }
+
+  function renderReview() {
+    chips.textContent = "";
+    items.forEach(function (it, i) {
+      var c = document.createElement("span"); c.className = "chip" + (it.on ? "" : " off");
+      var lbl = document.createElement("button"); lbl.type = "button"; lbl.className = "lbl";
+      lbl.textContent = it.name; lbl.setAttribute("aria-pressed", it.on ? "true" : "false");
+      lbl.addEventListener("click", function () { if (busy) return; it.on = !it.on; renderReview(); });
+      var x = document.createElement("button"); x.type = "button"; x.className = "rm"; x.textContent = "\u00d7";
+      x.setAttribute("aria-label", "Remove " + it.name);
+      x.addEventListener("click", function () { if (busy) return; items.splice(i, 1); renderReview(); });
+      c.appendChild(lbl); c.appendChild(x); chips.appendChild(c);
+    });
+    if (!items.length) {
+      var e = document.createElement("span"); e.className = "hint"; e.textContent = "Nothing listed. Add what you have below.";
+      chips.appendChild(e);
+    }
+    if (covered.length) {
+      coveredNote.hidden = false;
+      coveredNote.textContent = "I cannot see inside: " + covered.slice(0, 6).join("; ") + ". Add what is in them if you want them used.";
+    } else { coveredNote.hidden = true; }
+    quick.textContent = "";
+    SUGGEST.filter(function (n) { return !hasItem(n); }).forEach(function (n) {
+      var b = document.createElement("button"); b.type = "button"; b.textContent = "+ " + n;
+      b.addEventListener("click", function () { if (busy) return; items.push({ name: n, sure: true, on: true }); renderReview(); });
+      quick.appendChild(b);
+    });
+    review.hidden = false;
+    refresh();
+  }
+
+  function addItem() {
+    var v = addInput.value.trim().slice(0, 40);
+    if (!v) return;
+    if (!hasItem(v)) items.push({ name: v, sure: true, on: true });
+    addInput.value = "";
+    renderReview();
+  }
+  addBtn.addEventListener("click", function () { if (!busy) addItem(); });
+  addInput.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); if (!busy) addItem(); } });
+
+  function renderPhotos() {
+    thumbs.textContent = "";
+    var old = plate.querySelector("img"); if (old) old.remove();
+    if (photos.length) {
+      plateEmpty.hidden = true;
+      var im = document.createElement("img"); im.src = photos[0].dataUrl; im.alt = "Your first photo"; plate.appendChild(im);
+      photos.forEach(function (p, i) {
+        var t = document.createElement("div"); t.className = "thumb";
+        var ti = document.createElement("img"); ti.src = p.dataUrl; ti.alt = "Photo " + (i + 1);
+        var rm = document.createElement("button"); rm.type = "button"; rm.textContent = "\u00d7";
+        rm.setAttribute("aria-label", "Remove photo " + (i + 1));
+        rm.addEventListener("click", function () { if (busy) return; photos.splice(i, 1); resetReview(); renderPhotos(); });
+        t.appendChild(ti); t.appendChild(rm); thumbs.appendChild(t);
+      });
+    } else { plateEmpty.hidden = false; }
+    refresh();
+  }
+
+  function shrink(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        var w = img.naturalWidth, h = img.naturalHeight, s = Math.min(1, MAX_EDGE / Math.max(w, h));
+        var c = document.createElement("canvas");
+        c.width = Math.max(1, Math.round(w * s)); c.height = Math.max(1, Math.round(h * s));
+        var ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url); resolve(c.toDataURL("image/jpeg", 0.85));
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error("decode")); };
+      img.src = url;
+    });
+  }
+
+  async function addFiles(list) {
+    var files = Array.prototype.slice.call(list || []);
+    if (!files.length) return;
+    setStatus("");
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i];
+      if (photos.length >= MAX_PHOTOS) { setStatus("Maximum " + MAX_PHOTOS + " photos. Remove one to add another.", true); break; }
+      if (f.type && f.type.indexOf("image/") !== 0) { setStatus("Use photo files only.", true); continue; }
+      if (f.size > MAX_RAW) { setStatus("That photo is over 25 MB. Pick a smaller one.", true); continue; }
+      try { photos.push({ dataUrl: await shrink(f) }); resetReview(); renderPhotos(); }
+      catch (e) { setStatus("Could not read that photo. Try a JPEG or PNG.", true); }
+    }
+  }
+
+  [plate, camBtn, upBtn].forEach(function (l) { l.addEventListener("click", function (e) { if (busy) e.preventDefault(); }); });
+  upInput.addEventListener("change", function () { addFiles(upInput.files); upInput.value = ""; });
+  camInput.addEventListener("change", function () { addFiles(camInput.files); camInput.value = ""; });
+  ["dragenter", "dragover"].forEach(function (ev) { plate.addEventListener(ev, function (e) { e.preventDefault(); plate.classList.add("dragover"); }); });
+  ["dragleave", "drop"].forEach(function (ev) { plate.addEventListener(ev, function (e) { e.preventDefault(); plate.classList.remove("dragover"); }); });
+  plate.addEventListener("drop", function (e) { if (!busy && e.dataTransfer) addFiles(e.dataTransfer.files); });
+  typed.addEventListener("input", refresh);
+
+  function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+  function list(a) { var ul = el("ul"); a.forEach(function (t) { ul.appendChild(el("li", null, String(t))); }); return ul; }
+
+  function render(d, kind) {
+    resultEl.textContent = "";
+    var card = el("article", "card in");
+    card.appendChild(el("span", "kind" + (kind === "wild" ? " wild" : ""), kind === "wild" ? "Surprise pick" : "Tonight's pick"));
+    card.appendChild(el("h2", null, String(d.dish || "Your dish")));
+    if (d.use) card.appendChild(el("p", "use", String(d.use)));
+    var meta = el("div", "meta");
+    if (d.time) meta.appendChild(el("span", null, String(d.time)));
+    if (d.serves) meta.appendChild(el("span", null, "Serves " + String(d.serves)));
+    if (meta.children.length) card.appendChild(meta);
+    var cols = el("div", "cols");
+    var left = el("div"); left.appendChild(el("h3", null, "Ingredients")); left.appendChild(list(Array.isArray(d.ingredients) ? d.ingredients : []));
+    var right = el("div"); right.appendChild(el("h3", null, "Extras to pick up"));
+    var extras = Array.isArray(d.extras) ? d.extras.filter(Boolean) : [];
+    var buy = el("div", "buy" + (extras.length ? "" : " none"));
+    if (extras.length) buy.appendChild(list(extras)); else buy.appendChild(el("p", null, "Nothing. You have it all."));
+    right.appendChild(buy); cols.appendChild(left); cols.appendChild(right); card.appendChild(cols);
+    card.appendChild(el("h3", "steps-h", "Method"));
+    var ol = el("ol", "steps");
+    (Array.isArray(d.steps) ? d.steps : []).forEach(function (s) { ol.appendChild(el("li", null, String(s))); });
+    card.appendChild(ol);
+    resultEl.appendChild(card);
+    card.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  }
+
+  async function post(payload) {
+    ctl = new AbortController();
+    var res = await fetch("/api/chef", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload), signal: ctl.signal });
+    var d = null; try { d = await res.json(); } catch (e) { d = null; }
+    if (!res.ok || !d || d.error) { var err = new Error("api"); err.code = (d && d.error) || "upstream"; throw err; }
+    return d;
+  }
+
+  function fail(e) {
+    if (e && e.name === "AbortError") setStatus("Stopped.");
+    else if (e && e.code) setStatus(ERR[e.code] || ERR.upstream, true);
+    else setStatus(ERR.network, true);
+  }
+
+  async function readPhotos() {
+    if (busy || !photos.length) return;
+    busy = true; refresh(); setStatus("Looking at your photos...");
+    try {
+      var d = await post({ mode: "detect", images: photos.map(function (p) { return p.dataUrl.split(",")[1]; }) });
+      if (d.notFood) { setStatus(String(d.notFood), true); }
+      else { items = (d.items || []).map(function (it) { return { name: it.name, sure: it.sure, on: !!it.sure }; }); covered = d.covered || []; reviewed = true; setStatus(""); renderReview(); }
+    } catch (e) { fail(e); }
+    finally { busy = false; ctl = null; refresh(); }
+  }
+
+  async function cook(kind) {
+    if (busy) return;
+    var list2 = textMode ? typed.value.trim().slice(0, 1500) : items.filter(function (i) { return i.on; }).map(function (i) { return i.name; }).join(", ");
+    if (list2.length < 3) return;
+    busy = true; refresh(); setStatus(kind === "wild" ? "Thinking up something unexpected..." : "Planning your dish...");
+    try {
+      var d = await post({ mode: kind, text: list2, avoid: lastDish });
+      if (d.notFood) { resultEl.textContent = ""; setStatus(String(d.notFood), true); }
+      else if (!d.dish) { setStatus(ERR.garbled, true); }
+      else { lastDish = String(d.dish); setStatus(""); render(d, kind); }
+    } catch (e) { fail(e); }
+    finally { busy = false; ctl = null; refresh(); }
+  }
+
+  readBtn.addEventListener("click", readPhotos);
+  goBtn.addEventListener("click", function () { cook("normal"); });
+  wildBtn.addEventListener("click", function () { cook("wild"); });
+  stopBtn.addEventListener("click", function () { if (ctl) ctl.abort(); });
+
+  function enableTextMode() { textMode = true; textFallback.hidden = false; plateWrap.hidden = true; review.hidden = true; setStatus(""); refresh(); }
+  function enablePhotoMode() { textMode = false; textFallback.hidden = true; plateWrap.hidden = false; review.hidden = !reviewed; setStatus(""); refresh(); }
+  typeBtn.addEventListener("click", function () { if (!busy) enableTextMode(); });
+  photoBtn.addEventListener("click", function () { if (!busy) enablePhotoMode(); });
+
+  plateWrap.hidden = false;
+  refresh();
+})();
+</script>
+</body>
+</html>

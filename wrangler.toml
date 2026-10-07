@@ -1,0 +1,20 @@
+name = "fridge-chef"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+[[kv_namespaces]]
+binding = "RATE"
+id = "01780aaf565849eab0f73704fc6219dd"
+
+[vars]
+MODEL = "claude-haiku-4-5-20251001"
+DETECT_MODEL = "claude-sonnet-5-5"
+DAILY_LIMIT = "20"
+GLOBAL_DAILY_LIMIT = "100"
+
+# Add after the technoelogy.com zone is active on Cloudflare:
+# routes = [{ pattern = "chef.technoelogy.com", custom_domain = true }]
